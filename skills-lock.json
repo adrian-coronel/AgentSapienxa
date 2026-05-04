@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "api-design-principles": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "b242f962d5f78bf8bc147e92f2aa0341459b9f5f2f955e9867a8c41b85f22648"
+    },
+    "executing-plans": {
+      "source": "C:\\Users\\AsusG16\\source\\repos\\SAPIENXA\\AgentSapienxa\\.claude\\skills\\executing-plans",
+      "sourceType": "local",
+      "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "systematic-debugging": {
+      "source": "C:\\Users\\AsusG16\\source\\repos\\SAPIENXA\\AgentSapienxa\\.claude\\skills\\systematic-debugging",
+      "sourceType": "local",
+      "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "verification-before-completion": {
+      "source": "C:\\Users\\AsusG16\\source\\repos\\SAPIENXA\\AgentSapienxa\\.claude\\skills\\verification-before-completion",
+      "sourceType": "local",
+      "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "3f14af7f5690695209c22fbf8c8d133769a86d64892602c09bb13f135e14e857"
+    }
+  }
+}
