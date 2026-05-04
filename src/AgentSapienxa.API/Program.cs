@@ -2,6 +2,7 @@ using AgentSapienxa.API.Filters;
 using AgentSapienxa.API.Middleware;
 using AgentSapienxa.Application;
 using AgentSapienxa.Infrastructure;
+using AgentSapienxa.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,14 @@ builder.Services.AddSwaggerGen(opts =>
 });
 
 var app = builder.Build();
+
+// Seed AgentConfig rows on startup (no-op if already populated)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await AgentConfigSeeder.SeedAsync(db, seederLogger);
+}
 
 app.UseSwagger();
 app.UseSwaggerUI(opts => opts.SwaggerEndpoint("/swagger/v1/swagger.json", "AgentSapienxa v1"));

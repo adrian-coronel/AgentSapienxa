@@ -5,6 +5,7 @@ public enum IncomingMessageType { Text, Audio, Image, Document, Unknown }
 public class IncomingMessage
 {
     public string SessionId { get; init; } = default!;
+    public string PhoneE164 => "+" + SessionId.TrimStart('+');
     public string ContactName { get; init; } = string.Empty;
     public IncomingMessageType Type { get; init; }
     public string? Text { get; set; }

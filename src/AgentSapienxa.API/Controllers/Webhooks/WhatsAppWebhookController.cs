@@ -1,6 +1,7 @@
 using AgentSapienxa.Application.Common.Abstractions;
 using AgentSapienxa.Application.Webhooks;
 using AgentSapienxa.Infrastructure.Messaging.WhatsApp;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentSapienxa.API.Controllers.Webhooks;
@@ -13,6 +14,7 @@ public class WhatsAppWebhookController : ControllerBase
     private readonly MetaIncomingMessageMapper _mapper;
     private readonly IMediaTranscriber _transcriber;
     private readonly IImageDescriber _imageDescriber;
+    private readonly IMediator _mediator;
     private readonly ILogger<WhatsAppWebhookController> _logger;
 
     public WhatsAppWebhookController(
@@ -20,12 +22,14 @@ public class WhatsAppWebhookController : ControllerBase
         MetaIncomingMessageMapper mapper,
         IMediaTranscriber transcriber,
         IImageDescriber imageDescriber,
+        IMediator mediator,
         ILogger<WhatsAppWebhookController> logger)
     {
         _config = config;
         _mapper = mapper;
         _transcriber = transcriber;
         _imageDescriber = imageDescriber;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -52,16 +56,20 @@ public class WhatsAppWebhookController : ControllerBase
 
         foreach (var msg in messages)
         {
+            // Resolver media a texto antes de pasarlo al orquestador
             if (msg.Type == IncomingMessageType.Audio && msg.MediaStream is not null)
                 msg.Text = await _transcriber.TranscribeAsync(msg.MediaStream, msg.MimeType ?? "audio/ogg", ct);
 
             else if (msg.Type == IncomingMessageType.Image && msg.MediaStream is not null)
                 msg.Text = await _imageDescriber.DescribeAsync(msg.MediaStream, msg.MimeType ?? "image/jpeg", ct);
 
-            _logger.LogInformation("[Webhook] {Session} ({Type}): {Text}",
-                msg.SessionId, msg.Type, msg.Text ?? (msg.Caption ?? "[media]"));
+            if (msg.Type == IncomingMessageType.Unknown)
+            {
+                _logger.LogInformation("[Webhook] Ignoring unsupported message type from {Session}", msg.SessionId);
+                continue;
+            }
 
-            // Fase 3: await _mediator.Send(new ProcessIncomingMessageCommand(msg), ct);
+            await _mediator.Send(new ProcessIncomingMessageCommand(msg), ct);
         }
 
         return Ok();

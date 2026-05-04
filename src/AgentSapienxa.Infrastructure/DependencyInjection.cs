@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ILlmProvider, OpenAiLlmProvider>();
         services.AddScoped<IMediaTranscriber, WhisperTranscriber>();
         services.AddScoped<IImageDescriber, OpenAiImageDescriber>();
+        services.AddScoped<IIntentClassifier, OpenAiIntentClassifier>();
 
         // Repositories
         services.AddScoped<ILeadRepository, LeadRepository>();
