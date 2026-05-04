@@ -14,6 +14,8 @@ using AgentSapienxa.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using OpenAI;
+using System.ClientModel;
 
 namespace AgentSapienxa.Infrastructure;
 
@@ -33,6 +35,18 @@ public static class DependencyInjection
         services.AddHttpClient<MetaWhatsAppClient>();
         services.AddScoped<MetaIncomingMessageMapper>();
         services.AddScoped<IMessagingChannel, WhatsAppMessagingChannel>();
+
+        // OpenAI / Groq client (shared singleton)
+        services.AddSingleton(sp =>
+        {
+            var apiKey = config["OpenAI:ApiKey"] ?? string.Empty;
+            var baseUrl = config["OpenAI:BaseUrl"];
+            if (!string.IsNullOrEmpty(baseUrl))
+                return new OpenAIClient(
+                    new ApiKeyCredential(apiKey),
+                    new OpenAIClientOptions { Endpoint = new Uri(baseUrl) });
+            return new OpenAIClient(new ApiKeyCredential(apiKey));
+        });
 
         // LLM providers
         services.AddScoped<ILlmProvider, OpenAiLlmProvider>();

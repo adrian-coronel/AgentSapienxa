@@ -1,5 +1,4 @@
 using AgentSapienxa.Application.Common.Abstractions;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
@@ -9,13 +8,12 @@ namespace AgentSapienxa.Infrastructure.Llm;
 
 public class OpenAiLlmProvider : ILlmProvider
 {
-    private readonly OpenAIClient _openAi;
+    private readonly OpenAIClient _client;
     private readonly ILogger<OpenAiLlmProvider> _logger;
 
-    public OpenAiLlmProvider(IConfiguration config, ILogger<OpenAiLlmProvider> logger)
+    public OpenAiLlmProvider(OpenAIClient client, ILogger<OpenAiLlmProvider> logger)
     {
-        var apiKey = config["OpenAI:ApiKey"] ?? string.Empty;
-        _openAi = new OpenAIClient(apiKey);
+        _client = client;
         _logger = logger;
     }
 
@@ -27,7 +25,7 @@ public class OpenAiLlmProvider : ILlmProvider
         IReadOnlyList<LlmToolDefinition>? tools = null,
         CancellationToken ct = default)
     {
-        var chatClient = _openAi.GetChatClient(model);
+        var chatClient = _client.GetChatClient(model);
 
         var chatMessages = new List<ChatMessage> { new SystemChatMessage(systemPrompt) };
         foreach (var msg in messages)
@@ -65,18 +63,13 @@ public class OpenAiLlmProvider : ILlmProvider
             return new UserChatMessage(msg.Content);
 
         if (msg.Role == "tool")
-        {
-            // ToolCalls field stores the tool_call_id when role is "tool"
-            var toolCallId = msg.ToolCalls ?? string.Empty;
-            return new ToolChatMessage(toolCallId, msg.Content);
-        }
+            return new ToolChatMessage(msg.ToolCalls ?? string.Empty, msg.Content);
 
         if (msg.Role == "assistant")
         {
             if (string.IsNullOrEmpty(msg.ToolCalls))
                 return new AssistantChatMessage(msg.Content);
 
-            // Reconstruct tool calls from stored JSON
             var parsed = JsonSerializer.Deserialize<List<StoredToolCall>>(msg.ToolCalls);
             if (parsed is null or { Count: 0 })
                 return new AssistantChatMessage(msg.Content);

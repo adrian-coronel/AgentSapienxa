@@ -1,26 +1,28 @@
 using AgentSapienxa.Application.Common.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using OpenAI.Audio;
+using OpenAI;
 
 namespace AgentSapienxa.Infrastructure.Llm;
 
 public class WhisperTranscriber : IMediaTranscriber
 {
-    private readonly AudioClient _client;
+    private readonly OpenAIClient _client;
+    private readonly string _model;
     private readonly ILogger<WhisperTranscriber> _logger;
 
-    public WhisperTranscriber(IConfiguration config, ILogger<WhisperTranscriber> logger)
+    public WhisperTranscriber(OpenAIClient client, IConfiguration config, ILogger<WhisperTranscriber> logger)
     {
-        var apiKey = config["OpenAI:ApiKey"] ?? string.Empty;
-        _client = new AudioClient("whisper-1", apiKey);
+        _client = client;
+        _model = config["OpenAI:TranscriptionModel"] ?? "whisper-large-v3-turbo";
         _logger = logger;
     }
 
     public async Task<string> TranscribeAsync(Stream audioStream, string mimeType, CancellationToken ct = default)
     {
+        var audioClient = _client.GetAudioClient(_model);
         var filename = $"audio{MimeTypeToExtension(mimeType)}";
-        var result = await _client.TranscribeAudioAsync(audioStream, filename, cancellationToken: ct);
+        var result = await audioClient.TranscribeAudioAsync(audioStream, filename, cancellationToken: ct);
         _logger.LogInformation("[Whisper] Transcribed {Chars} chars", result.Value.Text.Length);
         return result.Value.Text;
     }

@@ -1,19 +1,21 @@
 using AgentSapienxa.Application.Common.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OpenAI;
 using OpenAI.Chat;
 
 namespace AgentSapienxa.Infrastructure.Llm;
 
 public class OpenAiImageDescriber : IImageDescriber
 {
-    private readonly ChatClient _client;
+    private readonly OpenAIClient _client;
+    private readonly string _model;
     private readonly ILogger<OpenAiImageDescriber> _logger;
 
-    public OpenAiImageDescriber(IConfiguration config, ILogger<OpenAiImageDescriber> logger)
+    public OpenAiImageDescriber(OpenAIClient client, IConfiguration config, ILogger<OpenAiImageDescriber> logger)
     {
-        var apiKey = config["OpenAI:ApiKey"] ?? string.Empty;
-        _client = new ChatClient("gpt-4o", apiKey);
+        _client = client;
+        _model = config["OpenAI:VisionModel"] ?? "llama-3.2-11b-vision-preview";
         _logger = logger;
     }
 
@@ -22,6 +24,8 @@ public class OpenAiImageDescriber : IImageDescriber
         using var ms = new MemoryStream();
         await imageStream.CopyToAsync(ms, ct);
         var bytes = ms.ToArray();
+
+        var chatClient = _client.GetChatClient(_model);
 
         var messages = new List<ChatMessage>
         {
@@ -32,7 +36,7 @@ public class OpenAiImageDescriber : IImageDescriber
                 ChatMessageContentPart.CreateImagePart(BinaryData.FromBytes(bytes), mimeType))
         };
 
-        var response = await _client.CompleteChatAsync(messages, cancellationToken: ct);
+        var response = await chatClient.CompleteChatAsync(messages, cancellationToken: ct);
         var description = response.Value.Content[0].Text;
         _logger.LogInformation("[Vision] Image described: {Chars} chars", description.Length);
         return description;
