@@ -8,11 +8,11 @@ COPY src/AgentSapienxa.API/AgentSapienxa.API.csproj src/AgentSapienxa.API/
 COPY src/AgentSapienxa.Application/AgentSapienxa.Application.csproj src/AgentSapienxa.Application/
 COPY src/AgentSapienxa.Infrastructure/AgentSapienxa.Infrastructure.csproj src/AgentSapienxa.Infrastructure/
 COPY src/AgentSapienxa.Domain/AgentSapienxa.Domain.csproj src/AgentSapienxa.Domain/
-COPY tests/AgentSapienxa.IntegrationTests/AgentSapienxa.IntegrationTests.csproj tests/AgentSapienxa.IntegrationTests/
-COPY tests/AgentSapienxa.UnitTests/AgentSapienxa.UnitTests.csproj tests/AgentSapienxa.UnitTests/
+# COPY tests/AgentSapienxa.IntegrationTests/AgentSapienxa.IntegrationTests.csproj tests/AgentSapienxa.IntegrationTests/
+# COPY tests/AgentSapienxa.UnitTests/AgentSapienxa.UnitTests.csproj tests/AgentSapienxa.UnitTests/
 
 # Restore dependencies
-RUN dotnet restore AgentSapienxa.sln
+RUN dotnet restore src/AgentSapienxa.API/AgentSapienxa.API.csproj
 
 # Copy remaining source code
 COPY . .
