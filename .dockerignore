@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+.github
+
+# Build outputs
+bin/
+obj/
+publish/
+
+# IDE
+.vs/
+.vscode/
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+
+# Environment files
+.env
+.env.example
+.env.*.local
+appsettings.Development.json
+appsettings.*.local.json
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests (optional - include if you want to keep test binaries)
+tests/
+
+# Documentation (optional)
+*.md
+docs/
+
+# Other
+*.log
+.DS_Store
+Thumbs.db
+node_modules/

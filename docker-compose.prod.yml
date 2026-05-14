@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  agentsapienxa-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agentsapienxa-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}
+      OpenAI__ApiKey: ${OPENAI_API_KEY}
+      OpenAI__BaseUrl: ${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}
+      OpenAI__DefaultModel: ${OPENAI_DEFAULT_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      OpenAI__IntentModel: ${OPENAI_INTENT_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      OpenAI__VisionModel: ${OPENAI_VISION_MODEL:-meta-llama/llama-3.2-11b-vision-instruct:free}
+      OpenAI__TranscriptionModel: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-large-v3-turbo}
+      Meta__VerifyToken: ${META_VERIFY_TOKEN}
+      Meta__AppSecret: ${META_APP_SECRET}
+      Meta__PhoneNumberId: ${META_PHONE_NUMBER_ID}
+      Meta__AccessToken: ${META_ACCESS_TOKEN}
+    networks:
+      - proxy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agentsapienxa-api.rule=Host(`api.dludena.digital`)"
+      - "traefik.http.routers.agentsapienxa-api.entrypoints=websecure"
+      - "traefik.http.routers.agentsapienxa-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agentsapienxa-api.loadbalancer.server.port=8080"
+
+networks:
+  proxy-network:
+    external: true
