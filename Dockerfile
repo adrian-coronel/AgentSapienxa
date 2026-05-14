@@ -24,6 +24,10 @@ RUN dotnet publish src/AgentSapienxa.API/AgentSapienxa.API.csproj -c Release -o 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
+# Instalar curl para health check
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+
 # Copy published application from build stage
 COPY --from=build /app/publish .
 
