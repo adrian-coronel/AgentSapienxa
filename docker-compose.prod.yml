@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     container_name: agentsapienxa-api
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}
@@ -26,7 +24,7 @@ services:
       - proxy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.agentsapienxa-api.rule=Host(`api.dludena.digital`)"
+      - "traefik.http.routers.agentsapienxa-api.rule=Host(`agentsapienxa.dludena.digital`)"
       - "traefik.http.routers.agentsapienxa-api.entrypoints=websecure"
       - "traefik.http.routers.agentsapienxa-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.agentsapienxa-api.loadbalancer.server.port=8080"
