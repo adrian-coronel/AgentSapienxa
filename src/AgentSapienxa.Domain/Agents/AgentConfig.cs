@@ -44,4 +44,18 @@ public class AgentConfig : Entity
         SystemPrompt = systemPrompt;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void Update(string name, string? description, string systemPrompt, string model,
+        decimal temperature, int memoryWindow, int? maxTokens, bool isActive)
+    {
+        Name = name;
+        Description = description;
+        SystemPrompt = systemPrompt;
+        Model = model;
+        Temperature = temperature;
+        MemoryWindow = memoryWindow;
+        MaxTokens = maxTokens;
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

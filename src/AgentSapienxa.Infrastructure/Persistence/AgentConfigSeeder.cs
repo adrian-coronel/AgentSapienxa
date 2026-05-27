@@ -17,7 +17,7 @@ public static class AgentConfigSeeder
                 key: AgentKey.CursosIntent.Value,
                 name: "Clasificador de Intención — Cursos",
                 systemPrompt: IntentPrompt,
-                model: "gpt-4.1-mini",
+                model: "llama-3.1-8b-instant",
                 temperature: 0m,
                 memoryWindow: 1,
                 description: "Clasifica el mensaje del usuario en una intención de negocio"
@@ -26,7 +26,7 @@ public static class AgentConfigSeeder
                 key: AgentKey.CursosGeneral.Value,
                 name: "Agente General — Cursos",
                 systemPrompt: GeneralPrompt,
-                model: "gpt-4.1",
+                model: "llama-3.3-70b-versatile",
                 temperature: 0.3m,
                 memoryWindow: 10,
                 description: "Resuelve consultas generales sobre cursos y registra inscripciones"
@@ -35,7 +35,7 @@ public static class AgentConfigSeeder
                 key: AgentKey.CursosPagos.Value,
                 name: "Agente de Pagos — Cursos",
                 systemPrompt: PaymentsPrompt,
-                model: "gpt-4.1",
+                model: "llama-3.3-70b-versatile",
                 temperature: 0.1m,
                 memoryWindow: 10,
                 description: "Gestiona el proceso de pago y validación de vouchers"
@@ -65,17 +65,21 @@ public static class AgentConfigSeeder
         COMPORTAMIENTO:
         - Saluda con calidez en el primer mensaje de la conversación
         - Escucha las necesidades del usuario antes de recomendar un curso
-        - Usa get_catalog para listar cursos y get_catalog_item para detalles
+        - Para listar cursos usa get_catalog. Para detalles de un curso específico, primero llama get_catalog para obtener el 'id' (UUID) y luego usa get_catalog_item con ese UUID exacto. Nunca inventes el ID.
         - Cuando el usuario dé su nombre, llama a capture_lead para registrarlo
         - Cuando confirme que quiere inscribirse, usa register_enrollment
         - Si el usuario pregunta por pagos o precios específicos, indícale que un asesor puede guiarlo
         - Si no puedes resolver algo tras 2 intentos, usa escalate_to_human
 
-        TONO Y FORMATO:
+        FORMATO DE RESPUESTAS:
         - Responde siempre en español peruano natural
-        - Mensajes cortos (máximo 4 oraciones)
-        - No uses markdown en tus respuestas (el canal es WhatsApp)
-        - No inventes datos de cursos; consulta las herramientas
+        - Mensajes cortos y directos
+        - No uses markdown (el canal es WhatsApp)
+        - Al listar cursos, presenta cada uno así:
+          📚 [Nombre]
+          💰 S/ [precio] | 📅 Inicio: [fecha] | 🪑 [plazas] plazas
+        - Al dar detalles de un curso, organiza: nombre, descripción breve, temario resumido (máx 3 puntos), precio y fecha
+        - No inventes datos; consulta siempre las herramientas
         """;
 
     private const string PaymentsPrompt = """

@@ -1,5 +1,4 @@
 using AgentSapienxa.Domain.Enrollments;
-using AgentSapienxa.Infrastructure.Persistence.Conversions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,7 +15,7 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         b.Property(x => x.CatalogItemId).HasColumnName("course");
         b.Property(x => x.Status).HasColumnName("status");
         b.Property(x => x.Observation).HasColumnName("observation");
-        b.Property(x => x.TotalCost).HasColumnName("total_cost").HasConversion<MoneyConverter>();
+        b.Property(x => x.TotalCost).HasColumnName("total_cost").HasColumnType("numeric(18,2)");
         b.Property(x => x.PaymentMethodId).HasColumnName("payment_method");
         b.Property(x => x.Voucher).HasColumnName("voucher");
         b.Property(x => x.SaleAgentId).HasColumnName("sale_agent");

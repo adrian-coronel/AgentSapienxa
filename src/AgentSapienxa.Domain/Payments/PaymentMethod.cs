@@ -10,4 +10,15 @@ public class PaymentMethod : Entity
     public decimal LimitAmount { get; private set; }
 
     private PaymentMethod() { }
+
+    public static PaymentMethod Create(string name, string? description, string? image, decimal limitAmount)
+    {
+        return new PaymentMethod
+        {
+            Name = name,
+            Description = description,
+            Image = image,
+            LimitAmount = limitAmount
+        };
+    }
 }

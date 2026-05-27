@@ -7,6 +7,7 @@ using AgentSapienxa.Application.Leads.Repositories;
 using AgentSapienxa.Application.Payments.Repositories;
 using AgentSapienxa.Infrastructure.FeatureFlags;
 using AgentSapienxa.Infrastructure.Llm;
+using AgentSapienxa.Infrastructure.Messaging;
 using AgentSapienxa.Infrastructure.Messaging.WhatsApp;
 using AgentSapienxa.Infrastructure.Persistence;
 using AgentSapienxa.Infrastructure.Persistence.Repositories;
@@ -14,6 +15,7 @@ using AgentSapienxa.Infrastructure.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OpenAI;
 using System.ClientModel;
 
@@ -21,7 +23,7 @@ namespace AgentSapienxa.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config, IHostEnvironment env)
     {
         services.AddDbContext<ApplicationDbContext>(opts =>
             opts.UseNpgsql(config.GetConnectionString("DefaultConnection")));
@@ -34,7 +36,11 @@ public static class DependencyInjection
         services.Configure<MetaWhatsAppOptions>(opts => config.GetSection(MetaWhatsAppOptions.Section).Bind(opts));
         services.AddHttpClient<MetaWhatsAppClient>();
         services.AddScoped<MetaIncomingMessageMapper>();
-        services.AddScoped<IMessagingChannel, WhatsAppMessagingChannel>();
+
+        if (env.IsDevelopment())
+            services.AddScoped<IMessagingChannel, SimulationMessagingChannel>();
+        else
+            services.AddScoped<IMessagingChannel, WhatsAppMessagingChannel>();
 
         // OpenAI / Groq client (shared singleton)
         services.AddSingleton(sp =>

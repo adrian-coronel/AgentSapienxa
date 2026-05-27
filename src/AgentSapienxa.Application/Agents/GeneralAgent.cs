@@ -2,6 +2,7 @@ using AgentSapienxa.Application.Common.Abstractions;
 using AgentSapienxa.Domain.Agents;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AgentSapienxa.Application.Agents;
 
@@ -41,20 +42,25 @@ public class GeneralAgent : IAgent
             var response = await _llm.CompleteAsync(
                 config.Model, config.Temperature, config.SystemPrompt, messages, toolDefs, ct);
 
-            if (response.ToolCalls.Count == 0)
+            // Llama models sometimes embed tool calls in content text instead of tool_calls field.
+            // Detect and normalize both formats so tools always execute.
+            var toolCalls = response.ToolCalls.Count > 0
+                ? response.ToolCalls
+                : ExtractNativeToolCalls(response.Content);
+            var content = StripFunctionTags(response.Content);
+
+            if (toolCalls.Count == 0)
             {
-                return string.IsNullOrWhiteSpace(response.Content)
+                return string.IsNullOrWhiteSpace(content)
                     ? "Lo siento, no pude procesar tu consulta. Por favor intenta de nuevo."
-                    : response.Content;
+                    : content;
             }
 
-            // Persist assistant turn with tool calls
             var tcJson = JsonSerializer.Serialize(
-                response.ToolCalls.Select(tc => new { tc.Id, tc.Name, tc.Arguments }));
-            messages.Add(new LlmMessage("assistant", response.Content, tcJson));
+                toolCalls.Select(tc => new { tc.Id, tc.Name, tc.Arguments }));
+            messages.Add(new LlmMessage("assistant", content, tcJson));
 
-            // Execute tools and collect results
-            foreach (var toolCall in response.ToolCalls)
+            foreach (var toolCall in toolCalls)
             {
                 var tool = _tools.FirstOrDefault(t => t.Name == toolCall.Name);
                 string result;
@@ -69,7 +75,6 @@ public class GeneralAgent : IAgent
                     result = $"{{\"error\": \"tool '{toolCall.Name}' not found\"}}";
                 }
 
-                // ToolCalls field stores the tool_call_id when role is "tool"
                 messages.Add(new LlmMessage("tool", result, toolCall.Id));
             }
         }
@@ -77,4 +82,18 @@ public class GeneralAgent : IAgent
         _logger.LogWarning("[Agent] Max iterations reached for session {Session}", context.SessionId);
         return "Lo siento, no pude completar tu solicitud. Un asesor te contactará pronto.";
     }
+
+    private static readonly Regex NativeFuncRegex =
+        new(@"<function=(\w+)>(.*?)</function>", RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static IReadOnlyList<LlmToolCall> ExtractNativeToolCalls(string content)
+    {
+        var calls = new List<LlmToolCall>();
+        foreach (Match m in NativeFuncRegex.Matches(content))
+            calls.Add(new LlmToolCall($"native-{Guid.NewGuid():N}", m.Groups[1].Value, m.Groups[2].Value));
+        return calls;
+    }
+
+    private static string StripFunctionTags(string content) =>
+        NativeFuncRegex.Replace(content, "").Trim();
 }

@@ -18,7 +18,7 @@ public class GetCatalogItemTool : IAgentTool
           "properties": {
             "catalog_item_id": {
               "type": "string",
-              "description": "ID del curso (GUID)"
+              "description": "UUID del curso obtenido del campo 'id' que devuelve get_catalog. Nunca uses el nombre del curso como ID."
             }
           },
           "required": ["catalog_item_id"]

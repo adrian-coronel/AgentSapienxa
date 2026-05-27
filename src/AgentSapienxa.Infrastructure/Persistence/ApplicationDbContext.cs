@@ -1,3 +1,4 @@
+using AgentSapienxa.Domain.Admin;
 using AgentSapienxa.Domain.Agents;
 using AgentSapienxa.Domain.Catalog;
 using AgentSapienxa.Domain.Conversations;
@@ -12,6 +13,8 @@ namespace AgentSapienxa.Infrastructure.Persistence;
 public class ApplicationDbContext : DbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
     public DbSet<Instructor> Instructors => Set<Instructor>();

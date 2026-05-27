@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datapath — Chat Simulación</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --wa-green:       #25D366;
+      --wa-dark-green:  #128C7E;
+      --wa-darker:      #075E54;
+      --wa-teal:        #00BFA5;
+      --wa-bubble-out:  #DCF8C6;
+      --wa-bubble-in:   #FFFFFF;
+      --wa-bg:          #ECE5DD;
+      --wa-header:      #075E54;
+      --wa-text:        #303030;
+      --wa-meta:        #667781;
+      --wa-input-bg:    #FFFFFF;
+      --wa-send:        #25D366;
+      --radius:         8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #111b21;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Contenedor principal ─────────────────────────── */
+    .chat-wrapper {
+      width: 420px;
+      max-width: 100vw;
+      height: 92vh;
+      max-height: 860px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    .chat-header {
+      background: var(--wa-header);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--wa-dark-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .header-info { flex: 1; }
+
+    .header-name {
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .header-status {
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+    }
+
+    .header-actions { display: flex; gap: 18px; }
+
+    .header-actions svg {
+      width: 22px; height: 22px;
+      fill: rgba(255,255,255,.85);
+      cursor: pointer;
+    }
+
+    /* ── Área de mensajes ────────────────────────────── */
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 10px;
+      background: var(--wa-bg);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 Q35 0 40 5 Q45 10 40 15 Q35 20 30 15 Q25 10 30 5Z' fill='%23c9b89a' opacity='.08'/%3E%3Cpath d='M10 35 Q15 30 20 35 Q25 40 20 45 Q15 50 10 45 Q5 40 10 35Z' fill='%23c9b89a' opacity='.08'/%3E%3Cpath d='M50 35 Q55 30 60 35 Q65 40 60 45 Q55 50 50 45 Q45 40 50 35Z' fill='%23c9b89a' opacity='.08'/%3E%3C/svg%3E");
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .messages-area::-webkit-scrollbar { width: 6px; }
+    .messages-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,.2); border-radius: 3px; }
+
+    /* ── Burbujas ─────────────────────────────────────── */
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 75%;
+      animation: fadeUp .18s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.out { align-self: flex-end; align-items: flex-end; }
+    .msg-row.in  { align-self: flex-start; align-items: flex-start; }
+
+    .bubble {
+      padding: 7px 10px 4px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.45;
+      word-break: break-word;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,.13);
+    }
+
+    .msg-row.out .bubble {
+      background: var(--wa-bubble-out);
+      color: var(--wa-text);
+      border-bottom-right-radius: 2px;
+    }
+
+    .msg-row.in .bubble {
+      background: var(--wa-bubble-in);
+      color: var(--wa-text);
+      border-bottom-left-radius: 2px;
+    }
+
+    .bubble-meta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .bubble-time {
+      font-size: 11px;
+      color: var(--wa-meta);
+    }
+
+    .bubble-check { font-size: 13px; color: #53bdeb; }
+
+    /* múltiples respuestas del bot: pequeño espacio entre ellas */
+    .msg-row.in + .msg-row.in { margin-top: 1px; }
+    .msg-row.in + .msg-row.in .bubble { border-top-left-radius: 2px; }
+
+    /* ── Indicador "escribiendo..." ──────────────────── */
+    .typing-row {
+      align-self: flex-start;
+      display: none;
+    }
+
+    .typing-row.visible { display: flex; }
+
+    .typing-bubble {
+      background: var(--wa-bubble-in);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 2px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.13);
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #90a4b0;
+      animation: bounce 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: .2s; }
+    .dot:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%            { transform: translateY(-5px); }
+    }
+
+    /* ── Fecha separadora ────────────────────────────── */
+    .date-divider {
+      align-self: center;
+      background: rgba(255,255,255,.85);
+      color: var(--wa-meta);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      margin: 8px 0;
+      box-shadow: 0 1px 1px rgba(0,0,0,.1);
+    }
+
+    /* ── Input area ──────────────────────────────────── */
+    .input-area {
+      background: #f0f2f5;
+      padding: 8px 10px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .input-box {
+      flex: 1;
+      background: var(--wa-input-bg);
+      border: none;
+      outline: none;
+      border-radius: 24px;
+      padding: 10px 16px;
+      font-size: 15px;
+      color: var(--wa-text);
+      resize: none;
+      max-height: 120px;
+      line-height: 1.4;
+      font-family: inherit;
+      box-shadow: 0 1px 2px rgba(0,0,0,.1);
+    }
+
+    .input-box::placeholder { color: #aaa; }
+
+    .send-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--wa-send);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+
+    .send-btn:hover  { background: #20c05a; }
+    .send-btn:active { background: #1aab50; transform: scale(.95); }
+
+    .send-btn svg { width: 24px; height: 24px; fill: #fff; }
+
+    /* ── Mic button ───────────────────────────────────── */
+    .mic-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--wa-send);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2);
+    }
+
+    .mic-btn:hover  { background: #20c05a; }
+    .mic-btn svg { width: 22px; height: 22px; fill: #fff; }
+
+    .mic-btn.recording {
+      background: #e53935;
+      animation: pulse-red 1s infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,.5); }
+      50%       { box-shadow: 0 0 0 8px rgba(229,57,53,0); }
+    }
+
+    /* ── Session pill ─────────────────────────────────── */
+    .session-pill {
+      align-self: center;
+      background: rgba(0,0,0,.35);
+      color: rgba(255,255,255,.8);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 10px;
+      margin: 4px 0 6px;
+      letter-spacing: .3px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="avatar">🤖</div>
+    <div class="header-info">
+      <div class="header-name">Sara — Datapath</div>
+      <div class="header-status" id="status-text">en línea</div>
+    </div>
+    <div class="header-actions">
+      <!-- ícono búsqueda -->
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+      <!-- ícono menú -->
+      <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    </div>
+  </div>
+
+  <!-- Mensajes -->
+  <div class="messages-area" id="messages">
+    <div class="date-divider" id="today-label">Hoy</div>
+    <div class="session-pill" id="session-pill"></div>
+
+    <!-- Typing indicator -->
+    <div class="typing-row" id="typing">
+      <div class="typing-bubble">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <textarea
+      id="msg-input"
+      class="input-box"
+      placeholder="Escribe un mensaje"
+      rows="1"
+    ></textarea>
+    <button class="mic-btn" id="mic-btn" title="Mantén para grabar voz">
+      <!-- mic icon -->
+      <svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+    </button>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+  const SESSION_KEY = 'dp_sim_session';
+  const API_URL     = '/api/simulate/chat';
+
+  // ── Session ID (persiste en sessionStorage) ──────────────
+  let sessionId = sessionStorage.getItem(SESSION_KEY);
+  if (!sessionId) {
+    sessionId = '519' + Math.floor(10000000 + Math.random() * 89999999);
+    sessionStorage.setItem(SESSION_KEY, sessionId);
+  }
+  document.getElementById('session-pill').textContent = 'Sesión: ' + sessionId;
+
+  // ── Helpers ──────────────────────────────────────────────
+  const messagesEl = document.getElementById('messages');
+  const typingEl   = document.getElementById('typing');
+  const inputEl    = document.getElementById('msg-input');
+  const sendBtn    = document.getElementById('send-btn');
+  const statusEl   = document.getElementById('status-text');
+
+  function now() {
+    return new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function scrollBottom() {
+    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: 'smooth' });
+  }
+
+  function showTyping(visible) {
+    typingEl.classList.toggle('visible', visible);
+    statusEl.textContent = visible ? 'escribiendo...' : 'en línea';
+    scrollBottom();
+  }
+
+  function appendMessage(text, direction) {
+    const row = document.createElement('div');
+    row.className = 'msg-row ' + direction;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const meta = document.createElement('div');
+    meta.className = 'bubble-meta';
+    meta.innerHTML = `<span class="bubble-time">${now()}</span>` +
+      (direction === 'out' ? '<span class="bubble-check">✓✓</span>' : '');
+
+    bubble.appendChild(meta);
+    row.appendChild(bubble);
+
+    // Insertar antes del indicador de escritura
+    messagesEl.insertBefore(row, typingEl);
+    scrollBottom();
+  }
+
+  // ── Auto-resize textarea ──────────────────────────────────
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  // ── Enter = enviar (Shift+Enter = nueva línea) ────────────
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  // ── Enviar mensaje ────────────────────────────────────────
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    appendMessage(text, 'out');
+    showTyping(true);
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message: text, contactName: 'Tú' })
+      });
+
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      const data = await res.json();
+      showTyping(false);
+
+      const responses = data.responses ?? [];
+      if (responses.length === 0) {
+        appendMessage('(sin respuesta)', 'in');
+      } else {
+        for (const msg of responses) {
+          appendMessage(msg, 'in');
+          await delay(120); // pequeña pausa entre mensajes múltiples
+        }
+      }
+    } catch (err) {
+      showTyping(false);
+      appendMessage('⚠️ Error al conectar con el servidor.', 'in');
+      console.error(err);
+    }
+
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+
+  // ── Grabación de audio ────────────────────────────────────
+  const micBtn = document.getElementById('mic-btn');
+  let mediaRecorder = null;
+  let audioChunks   = [];
+  let isRecording   = false;
+
+  micBtn.addEventListener('click', async () => {
+    if (!isRecording) {
+      await startRecording();
+    } else {
+      stopRecording();
+    }
+  });
+
+  async function startRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+        await sendAudio(blob);
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      micBtn.classList.add('recording');
+      micBtn.title = 'Clic para detener';
+      statusEl.textContent = '🔴 grabando...';
+    } catch {
+      appendMessage('⚠️ No se pudo acceder al micrófono.', 'in');
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    isRecording = false;
+    micBtn.classList.remove('recording');
+    micBtn.title = 'Grabar voz';
+  }
+
+  async function sendAudio(blob) {
+    showTyping(true);
+    micBtn.disabled = true;
+    sendBtn.disabled = true;
+
+    try {
+      const form = new FormData();
+      form.append('sessionId', sessionId);
+      form.append('contactName', 'Tú');
+      form.append('audio', blob, 'audio.webm');
+
+      const res = await fetch('/api/simulate/audio', { method: 'POST', body: form });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      const data = await res.json();
+      showTyping(false);
+
+      if (data.transcription) appendMessage('🎤 ' + data.transcription, 'out');
+
+      const responses = data.responses ?? [];
+      if (responses.length === 0) {
+        appendMessage('(sin respuesta)', 'in');
+      } else {
+        for (const msg of responses) {
+          appendMessage(msg, 'in');
+          await delay(120);
+        }
+      }
+    } catch (err) {
+      showTyping(false);
+      appendMessage('⚠️ Error al procesar el audio.', 'in');
+      console.error(err);
+    }
+
+    micBtn.disabled = false;
+    sendBtn.disabled = false;
+  }
+
+  // ── Focus inicial ─────────────────────────────────────────
+  inputEl.focus();
+</script>
+</body>
+</html>
