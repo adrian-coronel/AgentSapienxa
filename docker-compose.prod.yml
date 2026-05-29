@@ -20,6 +20,9 @@ services:
       Meta__AppSecret: ${META_APP_SECRET}
       Meta__PhoneNumberId: ${META_PHONE_NUMBER_ID}
       Meta__AccessToken: ${META_ACCESS_TOKEN}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: ${JWT_ISSUER:-AgentSapienxa}
+      Jwt__Audience: ${JWT_AUDIENCE:-AgentSapienxa.Admin}
       Cors__AllowedOrigins__0: https://edusapienxa.dludena.digital
     networks:
       - proxy-network
