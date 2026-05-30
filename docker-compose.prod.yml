@@ -8,6 +8,8 @@ services:
       dockerfile: Dockerfile
     container_name: agentsapienxa-api
     restart: unless-stopped
+    healthcheck:
+      disable: true
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}

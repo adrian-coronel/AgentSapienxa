@@ -35,8 +35,8 @@ COPY --from=build /app/publish .
 EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -f http://localhost:8080/ || exit 1
 
 # Set environment variable for ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080
