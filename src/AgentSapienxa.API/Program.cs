@@ -42,10 +42,13 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
     ?? ["http://localhost:4200"];
 
 builder.Services.AddCors(options =>
-    options.AddDefaultPolicy(policy =>
+{
+    options.AddPolicy("AllowSpecificOrigins", policy =>
         policy.WithOrigins(allowedOrigins)
+              .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowAnyMethod()));
+              .AllowCredentials());
+});
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<PaymentsFeatureGate>();
@@ -105,7 +108,7 @@ app.UseSwaggerUI(opts => opts.SwaggerEndpoint("/swagger/v1/swagger.json", "Agent
 
 app.UseMiddleware<MetaWebhookSignatureMiddleware>();
 
-app.UseCors();
+app.UseCors("AllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
