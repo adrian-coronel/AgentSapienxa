@@ -120,6 +120,6 @@ public record UpsertCatalogItemRequest(
     string? Projects,
     string? Link,
     Guid? InstructorId,
-    int? Places,
-    int? AvailablePlaces,
+    string? Places,
+    string? AvailablePlaces,
     DateOnly? StartDate);
