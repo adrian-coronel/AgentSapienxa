@@ -40,7 +40,8 @@ public static class DependencyInjection
         if (env.IsDevelopment())
             services.AddScoped<IMessagingChannel, SimulationMessagingChannel>();
         else
-            services.AddScoped<IMessagingChannel, WhatsAppMessagingChannel>();
+            // services.AddScoped<IMessagingChannel, WhatsAppMessagingChannel>();
+            services.AddScoped<IMessagingChannel, SimulationMessagingChannel>();
 
         // OpenAI / Groq client (shared singleton)
         services.AddSingleton(sp =>
