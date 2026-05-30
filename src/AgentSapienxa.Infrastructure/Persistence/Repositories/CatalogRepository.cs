@@ -13,7 +13,7 @@ public class CatalogRepository : ICatalogRepository
     {
         var query = _db.CatalogItems.Include(c => c.Instructor).AsQueryable();
         if (onlyAvailable)
-            query = query.Where(c => c.AvailablePlaces != null && c.AvailablePlaces != "0");
+            query = query.Where(c => c.AvailablePlaces != null && c.AvailablePlaces > 0);
         return await query.ToListAsync(ct);
     }
 

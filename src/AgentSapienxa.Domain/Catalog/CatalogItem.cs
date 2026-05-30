@@ -14,8 +14,8 @@ public class CatalogItem : Entity
     public string? Link { get; private set; }
     public Guid? InstructorId { get; private set; }
     public decimal Cost { get; private set; }
-    public string? Places { get; private set; }
-    public string? AvailablePlaces { get; private set; }
+    public int? Places { get; private set; }
+    public int? AvailablePlaces { get; private set; }
     public DateOnly? StartDate { get; private set; }
 
     public Instructor? Instructor { get; private set; }
@@ -33,8 +33,8 @@ public class CatalogItem : Entity
         string? projects = null,
         string? link = null,
         Guid? instructorId = null,
-        string? places = null,
-        string? availablePlaces = null,
+        int? places = null,
+        int? availablePlaces = null,
         DateOnly? startDate = null)
     {
         return new CatalogItem
