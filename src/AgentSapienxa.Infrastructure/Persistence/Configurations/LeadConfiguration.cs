@@ -11,6 +11,7 @@ public class LeadConfiguration : IEntityTypeConfiguration<Lead>
         b.ToTable("leads");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.LeadName).HasColumnName("lead_name");
         b.Property(x => x.Email).HasColumnName("email");
         b.Property(x => x.PhoneNumber).HasColumnName("phone_number").IsRequired();

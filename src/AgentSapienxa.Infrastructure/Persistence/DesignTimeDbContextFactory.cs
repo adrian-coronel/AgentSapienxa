@@ -1,3 +1,4 @@
+using AgentSapienxa.Infrastructure.CurrentCompany;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -18,9 +19,10 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
             ?? "Host=localhost;Database=agentsapienxa;Username=postgres;Password=changeme";
 
         var opts = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseNpgsql(connStr)
+            .UseNpgsql(connStr, o => o.UseVector())
             .Options;
 
-        return new ApplicationDbContext(opts);
+        // Design-time: no HTTP context, so CompanyId is always null (no filter applied)
+        return new ApplicationDbContext(opts, new ScopedCurrentCompanyAccessor());
     }
 }

@@ -11,6 +11,7 @@ public class AgentConfigConfiguration : IEntityTypeConfiguration<AgentConfig>
         b.ToTable("agent_config");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.AgentKey).HasColumnName("agent_key").IsRequired();
         b.Property(x => x.Name).HasColumnName("name").IsRequired();
         b.Property(x => x.Description).HasColumnName("description");

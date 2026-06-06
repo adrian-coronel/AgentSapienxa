@@ -11,6 +11,7 @@ public class ConversationMessageConfiguration : IEntityTypeConfiguration<Convers
         b.ToTable("conversation_history");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.SessionId).HasColumnName("session_id").IsRequired();
         b.Property(x => x.Role).HasColumnName("role").IsRequired();
         b.Property(x => x.Content).HasColumnName("content").IsRequired();

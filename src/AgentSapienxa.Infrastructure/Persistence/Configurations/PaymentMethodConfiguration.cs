@@ -12,6 +12,7 @@ public class PaymentMethodConfiguration : IEntityTypeConfiguration<PaymentMethod
         b.ToTable("payment_methods");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.Name).HasColumnName("name");
         b.Property(x => x.Description).HasColumnName("description");
         b.Property(x => x.Image).HasColumnName("image");

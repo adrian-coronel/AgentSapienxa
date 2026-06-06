@@ -11,6 +11,7 @@ public class EnrollmentConfiguration : IEntityTypeConfiguration<Enrollment>
         b.ToTable("leads_enrollments");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.LeadId).HasColumnName("lead");
         b.Property(x => x.CatalogItemId).HasColumnName("course");
         b.Property(x => x.Status).HasColumnName("status");

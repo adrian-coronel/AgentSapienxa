@@ -11,6 +11,7 @@ public class SalesAgentConfiguration : IEntityTypeConfiguration<SalesAgent>
         b.ToTable("sales_agents");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.AgentName).HasColumnName("agent_name");
         b.Property(x => x.Email).HasColumnName("email");
         b.Property(x => x.PhoneNumber).HasColumnName("phone_number");

@@ -11,6 +11,7 @@ public class AdminUserConfiguration : IEntityTypeConfiguration<AdminUser>
         b.ToTable("admin_users");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.Name).HasColumnName("name").IsRequired();
         b.Property(x => x.Email).HasColumnName("email").IsRequired();
         b.Property(x => x.PasswordHash).HasColumnName("password_hash").IsRequired();

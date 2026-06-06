@@ -12,6 +12,7 @@ public class CatalogItemConfiguration : IEntityTypeConfiguration<CatalogItem>
         b.ToTable("courses");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.Code).HasColumnName("code");
         b.Property(x => x.Title).HasColumnName("title").IsRequired();
         b.Property(x => x.ShortDescription).HasColumnName("short_description");

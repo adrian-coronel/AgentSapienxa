@@ -11,6 +11,7 @@ public class PaymentValidationConfiguration : IEntityTypeConfiguration<PaymentVa
         b.ToTable("payment_validations");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.EnrollmentId).HasColumnName("enrollment_id");
         b.Property(x => x.VoucherDetail).HasColumnName("voucher_detail");
         b.Property(x => x.VoucherUrl).HasColumnName("voucher_url");

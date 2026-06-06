@@ -11,6 +11,7 @@ public class InstructorConfiguration : IEntityTypeConfiguration<Instructor>
         b.ToTable("instructors");
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id");
+        b.Property(x => x.CompanyId).HasColumnName("company_id");
         b.Property(x => x.InstructorName).HasColumnName("instructor_name");
         b.Property(x => x.Email).HasColumnName("email");
         b.Property(x => x.PhoneNumber).HasColumnName("phone_number");

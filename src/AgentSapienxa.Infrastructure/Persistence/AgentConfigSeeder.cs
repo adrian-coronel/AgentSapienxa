@@ -6,9 +6,9 @@ namespace AgentSapienxa.Infrastructure.Persistence;
 
 public static class AgentConfigSeeder
 {
-    public static async Task SeedAsync(ApplicationDbContext db, ILogger logger)
+    public static async Task SeedAsync(ApplicationDbContext db, ILogger logger, Guid? companyId = null)
     {
-        if (await db.AgentConfigs.AnyAsync()) return;
+        if (await db.AgentConfigs.IgnoreQueryFilters().AnyAsync()) return;
 
         logger.LogInformation("[Seeder] Seeding AgentConfig rows...");
 
@@ -20,7 +20,8 @@ public static class AgentConfigSeeder
                 model: "llama-3.1-8b-instant",
                 temperature: 0m,
                 memoryWindow: 1,
-                description: "Clasifica el mensaje del usuario en una intención de negocio"
+                description: "Clasifica el mensaje del usuario en una intención de negocio",
+                companyId: companyId
             ),
             AgentConfig.Create(
                 key: AgentKey.CursosGeneral.Value,
@@ -29,7 +30,8 @@ public static class AgentConfigSeeder
                 model: "llama-3.3-70b-versatile",
                 temperature: 0.3m,
                 memoryWindow: 10,
-                description: "Resuelve consultas generales sobre cursos y registra inscripciones"
+                description: "Resuelve consultas generales sobre cursos y registra inscripciones",
+                companyId: companyId
             ),
             AgentConfig.Create(
                 key: AgentKey.CursosPagos.Value,
@@ -38,7 +40,8 @@ public static class AgentConfigSeeder
                 model: "llama-3.3-70b-versatile",
                 temperature: 0.1m,
                 memoryWindow: 10,
-                description: "Gestiona el proceso de pago y validación de vouchers"
+                description: "Gestiona el proceso de pago y validación de vouchers",
+                companyId: companyId
             )
         );
 
@@ -70,6 +73,7 @@ public static class AgentConfigSeeder
         COMPORTAMIENTO:
         - Solo llama a get_catalog cuando el usuario pida EXPLÍCITAMENTE ver cursos o pregunte qué cursos hay.
         - Para detalles de un curso específico, primero llama get_catalog para obtener el 'id' (UUID) y luego usa get_catalog_item con ese UUID exacto. Nunca inventes el ID.
+        - Usa search_documents cuando el usuario pregunte algo que podría estar en documentos internos: políticas, guías, horarios, requisitos, beneficios u otro material adicional que NO está en el catálogo de cursos.
         - Escucha las necesidades del usuario antes de recomendar un curso
         - Cuando el usuario dé su nombre, llama a capture_lead para registrarlo
         - Cuando confirme que quiere inscribirse, usa register_enrollment
