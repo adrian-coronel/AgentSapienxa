@@ -22,7 +22,7 @@ public class CaptureLeadHandler : IRequestHandler<CaptureLeadCommand, CaptureLea
         {
             existing.UpdateInfo(cmd.Name, cmd.Email);
             await _leads.UpdateAsync(existing, ct);
-            return new CaptureLeadResult(existing.Id, false, "Lead actualizado correctamente.");
+            return new CaptureLeadResult(existing.Id, false, "Lead actualizado correctamente.", existing.CompanyId);
         }
 
         var lead = Lead.Create(cmd.PhoneNumber, cmd.Name, cmd.Email, cmd.ContactMethod);
@@ -32,6 +32,6 @@ public class CaptureLeadHandler : IRequestHandler<CaptureLeadCommand, CaptureLea
             lead.AssignAgent(agent.Id);
 
         await _leads.AddAsync(lead, ct);
-        return new CaptureLeadResult(lead.Id, true, "Lead capturado correctamente.");
+        return new CaptureLeadResult(lead.Id, true, "Lead capturado correctamente.", lead.CompanyId);
     }
 }

@@ -8,4 +8,4 @@ public record CaptureLeadCommand(
     string? Email,
     string? ContactMethod) : IRequest<CaptureLeadResult>;
 
-public record CaptureLeadResult(Guid LeadId, bool IsNew, string Message);
+public record CaptureLeadResult(Guid LeadId, bool IsNew, string Message, Guid CompanyId = default);

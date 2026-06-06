@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IAgentTool, CheckoutTool>();
         services.AddScoped<IAgentTool, RequestPaymentValidationTool>();
         services.AddScoped<IAgentTool, EscalateToHumanTool>();
+        services.AddScoped<IAgentTool, SearchDocumentsTool>();
 
         // Agentes — registrados como tipos concretos (AgentRouter los inyecta directamente)
         services.AddScoped<GeneralAgent>();

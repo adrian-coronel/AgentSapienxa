@@ -11,7 +11,7 @@ public class GeneralAgent : IAgent
     private static readonly HashSet<string> AllowedToolNames =
     [
         "get_catalog", "get_catalog_item", "capture_lead",
-        "register_enrollment", "escalate_to_human"
+        "register_enrollment", "escalate_to_human", "search_documents"
     ];
 
     private readonly ILlmProvider _llm;
