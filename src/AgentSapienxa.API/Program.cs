@@ -2,6 +2,7 @@ using AgentSapienxa.API.Filters;
 using AgentSapienxa.API.Middleware;
 using AgentSapienxa.Application;
 using AgentSapienxa.Domain.Admin;
+using AgentSapienxa.Domain.Companies;
 using AgentSapienxa.Infrastructure;
 using AgentSapienxa.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -85,14 +86,41 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var seederLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     await db.Database.MigrateAsync();
-    await AgentConfigSeeder.SeedAsync(db, seederLogger);
+
+    // Seed default company
+    Guid defaultCompanyId;
+    var defaultCompany = db.Companies.FirstOrDefault(c => c.Slug == "default");
+    if (defaultCompany is null)
+    {
+        defaultCompany = Company.Create("Default", "default");
+        db.Companies.Add(defaultCompany);
+        await db.SaveChangesAsync();
+
+        // Assign all existing records to the default company
+        await db.Database.ExecuteSqlRawAsync($@"
+            UPDATE leads          SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE courses        SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE conversation_history SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE agent_config   SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE leads_enrollments SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE instructors    SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE sales_agents   SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE payment_methods SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE payment_validations SET company_id = '{defaultCompany.Id}' WHERE company_id = '00000000-0000-0000-0000-000000000000' OR company_id IS NULL;
+            UPDATE admin_users    SET company_id = '{defaultCompany.Id}' WHERE company_id IS NULL;
+        ");
+    }
+    defaultCompanyId = defaultCompany.Id;
+
+    await AgentConfigSeeder.SeedAsync(db, seederLogger, defaultCompanyId);
 
     if (!db.AdminUsers.Any())
     {
         db.AdminUsers.Add(AdminUser.Create(
             "Administrador",
             "admin@agentsapienxa.com",
-            BCrypt.Net.BCrypt.HashPassword("Admin@2026")));
+            BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
+            companyId: defaultCompanyId));
         await db.SaveChangesAsync();
     }
 }
@@ -111,6 +139,7 @@ app.UseMiddleware<MetaWebhookSignatureMiddleware>();
 app.UseCors("AllowSpecificOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<CompanyResolverMiddleware>();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
