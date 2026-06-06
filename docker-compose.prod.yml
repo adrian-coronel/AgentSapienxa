@@ -19,6 +19,9 @@ services:
       OpenAI__IntentModel: ${OPENAI_INTENT_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
       OpenAI__VisionModel: ${OPENAI_VISION_MODEL:-meta-llama/llama-3.2-11b-vision-instruct:free}
       OpenAI__TranscriptionModel: ${OPENAI_TRANSCRIPTION_MODEL:-whisper-large-v3-turbo}
+      OpenAI__EmbeddingApiKey: ${OLLAMA_API_KEY:-ollama}
+      OpenAI__EmbeddingModel: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      OpenAI__EmbeddingBaseUrl: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
       Meta__VerifyToken: ${META_VERIFY_TOKEN}
       Meta__AppSecret: ${META_APP_SECRET}
       Meta__PhoneNumberId: ${META_PHONE_NUMBER_ID}
@@ -27,6 +30,8 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-AgentSapienxa}
       Jwt__Audience: ${JWT_AUDIENCE:-AgentSapienxa.Admin}
       Cors__AllowedOrigins__0: https://edusapienxa.dludena.digital
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - proxy-network
     labels:
