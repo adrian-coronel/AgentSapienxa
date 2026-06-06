@@ -294,6 +294,45 @@
       margin: 4px 0 6px;
       letter-spacing: .3px;
     }
+
+    /* ── Company bar ──────────────────────────────────── */
+    .company-bar {
+      background: #054d44;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .company-bar label {
+      color: rgba(255,255,255,.7);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .company-select {
+      flex: 1;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      padding: 4px 8px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .company-select option {
+      background: #075E54;
+      color: #fff;
+    }
+
+    .company-select:disabled {
+      opacity: .5;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -313,6 +352,14 @@
       <!-- ícono menú -->
       <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
     </div>
+  </div>
+
+  <!-- Company selector -->
+  <div class="company-bar">
+    <label for="company-select">Empresa:</label>
+    <select id="company-select" class="company-select" disabled>
+      <option value="">Cargando…</option>
+    </select>
   </div>
 
   <!-- Mensajes -->
@@ -359,6 +406,36 @@
     sessionStorage.setItem(SESSION_KEY, sessionId);
   }
   document.getElementById('session-pill').textContent = 'Sesión: ' + sessionId;
+
+  // ── Company selector ──────────────────────────────────────
+  const companySelect = document.getElementById('company-select');
+
+  async function loadCompanies() {
+    try {
+      const res = await fetch('/api/simulate/companies');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const companies = await res.json();
+
+      companySelect.innerHTML = '';
+      if (companies.length === 0) {
+        companySelect.innerHTML = '<option value="">Sin empresas activas</option>';
+        return;
+      }
+
+      companies.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.slug;
+        opt.textContent = c.name;
+        companySelect.appendChild(opt);
+      });
+
+      companySelect.disabled = false;
+    } catch {
+      companySelect.innerHTML = '<option value="">Error al cargar</option>';
+    }
+  }
+
+  loadCompanies();
 
   // ── Helpers ──────────────────────────────────────────────
   const messagesEl = document.getElementById('messages');
@@ -429,7 +506,7 @@
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, message: text, contactName: 'Tú' })
+        body: JSON.stringify({ sessionId, message: text, contactName: 'Tú', companySlug: companySelect.value || null })
       });
 
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -514,6 +591,7 @@
       form.append('sessionId', sessionId);
       form.append('contactName', 'Tú');
       form.append('audio', blob, 'audio.webm');
+      if (companySelect.value) form.append('companySlug', companySelect.value);
 
       const res = await fetch('/api/simulate/audio', { method: 'POST', body: form });
       if (!res.ok) throw new Error('HTTP ' + res.status);
