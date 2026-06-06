@@ -4,6 +4,7 @@ namespace AgentSapienxa.Domain.Catalog;
 
 public class CatalogItem : Entity
 {
+    public Guid CompanyId { get; private set; }
     public string? Code { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string? ShortDescription { get; private set; }
@@ -22,6 +23,8 @@ public class CatalogItem : Entity
 
     private CatalogItem() { }
 
+    public void AssignToCompany(Guid companyId) => CompanyId = companyId;
+
     public static CatalogItem Create(
         string title,
         decimal cost,
@@ -35,10 +38,12 @@ public class CatalogItem : Entity
         Guid? instructorId = null,
         string? places = null,
         string? availablePlaces = null,
-        DateOnly? startDate = null)
+        DateOnly? startDate = null,
+        Guid? companyId = null)
     {
         return new CatalogItem
         {
+            CompanyId = companyId ?? Guid.Empty,
             Title = title,
             Cost = cost,
             Code = code,

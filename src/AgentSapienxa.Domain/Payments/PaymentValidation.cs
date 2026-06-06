@@ -4,6 +4,7 @@ namespace AgentSapienxa.Domain.Payments;
 
 public class PaymentValidation : Entity
 {
+    public Guid CompanyId { get; private set; }
     public Guid EnrollmentId { get; private set; }
     public string? VoucherDetail { get; private set; }
     public string? VoucherUrl { get; private set; }
@@ -16,10 +17,13 @@ public class PaymentValidation : Entity
 
     private PaymentValidation() { }
 
-    public static PaymentValidation Create(Guid enrollmentId, string requestedBy, string? voucherDetail, string? voucherUrl)
+    public void AssignToCompany(Guid companyId) => CompanyId = companyId;
+
+    public static PaymentValidation Create(Guid enrollmentId, string requestedBy, string? voucherDetail, string? voucherUrl, Guid? companyId = null)
     {
         return new PaymentValidation
         {
+            CompanyId = companyId ?? Guid.Empty,
             EnrollmentId = enrollmentId,
             RequestedBy = requestedBy,
             VoucherDetail = voucherDetail,

@@ -4,6 +4,7 @@ namespace AgentSapienxa.Domain.Enrollments;
 
 public class Enrollment : Entity
 {
+    public Guid CompanyId { get; private set; }
     public Guid LeadId { get; private set; }
     public Guid CatalogItemId { get; private set; }
     public string Status { get; private set; } = EnrollmentStatus.Interesado;
@@ -15,10 +16,13 @@ public class Enrollment : Entity
 
     private Enrollment() { }
 
-    public static Enrollment Create(Guid leadId, Guid catalogItemId)
+    public void AssignToCompany(Guid companyId) => CompanyId = companyId;
+
+    public static Enrollment Create(Guid leadId, Guid catalogItemId, Guid? companyId = null)
     {
         return new Enrollment
         {
+            CompanyId = companyId ?? Guid.Empty,
             LeadId = leadId,
             CatalogItemId = catalogItemId,
             Status = EnrollmentStatus.Interesado

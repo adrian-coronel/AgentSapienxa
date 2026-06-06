@@ -4,6 +4,7 @@ namespace AgentSapienxa.Domain.Agents;
 
 public class AgentConfig : Entity
 {
+    public Guid CompanyId { get; private set; }
     public string AgentKey { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
@@ -18,13 +19,16 @@ public class AgentConfig : Entity
 
     private AgentConfig() { }
 
+    public void AssignToCompany(Guid companyId) => CompanyId = companyId;
+
     public static AgentConfig Create(
         string key, string name, string systemPrompt, string model,
         decimal temperature = 0.2m, int memoryWindow = 10, int? maxTokens = null,
-        string? description = null)
+        string? description = null, Guid? companyId = null)
     {
         return new AgentConfig
         {
+            CompanyId = companyId ?? Guid.Empty,
             AgentKey = key,
             Name = name,
             Description = description,

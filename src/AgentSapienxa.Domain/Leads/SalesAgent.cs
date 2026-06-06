@@ -4,10 +4,13 @@ namespace AgentSapienxa.Domain.Leads;
 
 public class SalesAgent : Entity
 {
+    public Guid CompanyId { get; private set; }
     public string AgentName { get; private set; } = string.Empty;
     public string? Email { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? LeadClassificationSummary { get; private set; }
 
     private SalesAgent() { }
+
+    public void AssignToCompany(Guid companyId) => CompanyId = companyId;
 }
