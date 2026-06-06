@@ -9,7 +9,7 @@ namespace AgentSapienxa.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/companies")]
-[Authorize]
+[Authorize(Roles = "superadmin")]
 public class CompaniesAdminController : ControllerBase
 {
     private readonly IMediator _mediator;

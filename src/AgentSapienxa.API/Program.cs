@@ -120,8 +120,51 @@ using (var scope = app.Services.CreateScope())
             "Administrador",
             "admin@agentsapienxa.com",
             BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
+            role: AdminRoles.Admin,
             companyId: defaultCompanyId));
         await db.SaveChangesAsync();
+    }
+
+    // Multi-tenancy migration: ensure at least one superadmin + one admin for Default company
+    var hasSuperadmin = await db.AdminUsers.AnyAsync(u => u.Role == AdminRoles.Superadmin);
+    if (!hasSuperadmin)
+    {
+        var existing = await db.AdminUsers
+            .FirstOrDefaultAsync(u => u.Email == "admin@agentsapienxa.com");
+
+        if (existing is not null)
+        {
+            existing.ChangeRole(AdminRoles.Superadmin, null);
+            seederLogger.LogInformation("Promoted {Email} to superadmin", existing.Email);
+        }
+        else
+        {
+            db.AdminUsers.Add(AdminUser.Create(
+                "Superadmin",
+                "superadmin@agentsapienxa.com",
+                BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
+                role: AdminRoles.Superadmin,
+                companyId: null));
+            seederLogger.LogInformation("Created seed superadmin superadmin@agentsapienxa.com");
+        }
+
+        // Save the superadmin promotion/creation first so the hasDefaultAdmin query
+        // reflects the updated state (promoted user is no longer admin for defaultCompany).
+        await db.SaveChangesAsync();
+
+        var hasDefaultAdmin = await db.AdminUsers
+            .AnyAsync(u => u.CompanyId == defaultCompanyId && u.Role == AdminRoles.Admin);
+        if (!hasDefaultAdmin)
+        {
+            db.AdminUsers.Add(AdminUser.Create(
+                "Admin Default",
+                "admin-default@agentsapienxa.com",
+                BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
+                role: AdminRoles.Admin,
+                companyId: defaultCompanyId));
+            seederLogger.LogInformation("Created seed admin admin-default@agentsapienxa.com for Default company");
+            await db.SaveChangesAsync();
+        }
     }
 }
 
