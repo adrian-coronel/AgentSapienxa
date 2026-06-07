@@ -10,7 +10,7 @@ public class LeadRepository : ILeadRepository
     public LeadRepository(ApplicationDbContext db) => _db = db;
 
     public Task<Lead?> GetByPhoneNumberAsync(string phoneNumber, CancellationToken ct) =>
-        _db.Leads.Include(l => l.SalesAgent).FirstOrDefaultAsync(l => l.PhoneNumber == phoneNumber, ct);
+        _db.Leads.IgnoreQueryFilters().Include(l => l.SalesAgent).FirstOrDefaultAsync(l => l.PhoneNumber == phoneNumber, ct);
 
     public Task<Lead?> GetByIdAsync(Guid id, CancellationToken ct) =>
         _db.Leads.Include(l => l.SalesAgent).FirstOrDefaultAsync(l => l.Id == id, ct);
