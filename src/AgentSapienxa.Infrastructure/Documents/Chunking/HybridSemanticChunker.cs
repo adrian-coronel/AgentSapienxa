@@ -1,4 +1,5 @@
 using AgentSapienxa.Application.Common.Abstractions;
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -7,24 +8,30 @@ namespace AgentSapienxa.Infrastructure.Documents.Chunking;
 public class HybridSemanticChunker : ISemanticChunker
 {
     private readonly IEmbeddingProvider _embedding;
+    private readonly ILogger<HybridSemanticChunker> _logger;
     private const int MaxTokensPerChunk = 800;
     private const int TargetTokensPerChunk = 600;
     private const float SimilarityThreshold = 0.6f;
     private const float OverlapRatio = 0.15f;
 
-    public HybridSemanticChunker(IEmbeddingProvider embedding)
+    public HybridSemanticChunker(IEmbeddingProvider embedding, ILogger<HybridSemanticChunker> logger)
     {
         _embedding = embedding;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<ChunkDraft>> ChunkAsync(string markdown, CancellationToken ct = default)
     {
         var sections = SplitByHeaders(markdown);
+        _logger.LogInformation("[Chunker] {Count} sections detected", sections.Count);
         var result = new List<ChunkDraft>();
 
-        foreach (var (headerPath, content) in sections)
+        for (int si = 0; si < sections.Count; si++)
         {
+            var (headerPath, content) = sections[si];
             var tokens = EstimateTokens(content);
+            _logger.LogInformation("[Chunker] Section {N}/{Total} — '{Header}' — {Tokens} tokens",
+                si + 1, sections.Count, string.IsNullOrEmpty(headerPath) ? "(sin header)" : headerPath, tokens);
 
             if (tokens <= MaxTokensPerChunk)
             {
@@ -42,13 +49,17 @@ public class HybridSemanticChunker : ISemanticChunker
             if (paragraphs.Count <= 1)
             {
                 // Single huge paragraph — hard split by sentences
+                _logger.LogInformation("[Chunker] Section {N} — single large paragraph, hard-splitting by sentences", si + 1);
                 var subChunks = HardSplitBySentences(content, headerPath, MaxTokensPerChunk);
                 result.AddRange(subChunks);
                 continue;
             }
 
+            _logger.LogInformation("[Chunker] Section {N} — {Paragraphs} paragraphs, calling embedding API for semantic boundaries...",
+                si + 1, paragraphs.Count);
             var subChunksFromParagraphs = await SplitParagraphsBySemanticBoundariesAsync(
                 paragraphs, headerPath, ct);
+            _logger.LogInformation("[Chunker] Section {N} — semantic split done, {Chunks} sub-chunks", si + 1, subChunksFromParagraphs.Count);
             result.AddRange(subChunksFromParagraphs);
         }
 

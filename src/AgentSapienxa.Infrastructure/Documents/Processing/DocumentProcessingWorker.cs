@@ -77,31 +77,31 @@ public class DocumentProcessingWorker : BackgroundService
         try
         {
             // Step 1: Parse to Markdown
+            _logger.LogInformation("[DocWorker] [{Id}] Step 1/4 — Parsing to Markdown...", upload.Id);
             upload.MarkAsParsing();
             await uploads.UpdateAsync(upload, ct);
 
             await using var fileStream = await storage.OpenAsync(upload.StoragePath, ct);
             var markdown = await converter.ConvertAsync(fileStream, upload.ContentType, ct);
+            _logger.LogInformation("[DocWorker] [{Id}] Markdown generated — {Chars} chars", upload.Id, markdown.Length);
             upload.UpdateProgress(40);
             await uploads.UpdateAsync(upload, ct);
 
             if (await ShouldStopAsync(uploads, upload.Id, ct)) return;
 
             // Step 2: Chunk
+            _logger.LogInformation("[DocWorker] [{Id}] Step 2/4 — Chunking...", upload.Id);
             upload.MarkAsChunking();
             await uploads.UpdateAsync(upload, ct);
 
             var chunkDrafts = await chunker.ChunkAsync(markdown, ct);
+            _logger.LogInformation("[DocWorker] [{Id}] Chunking done — {Count} chunks produced", upload.Id, chunkDrafts.Count);
             upload.UpdateProgress(60);
             await uploads.UpdateAsync(upload, ct);
 
             if (await ShouldStopAsync(uploads, upload.Id, ct)) return;
 
             // Step 3: Embed
-            upload.MarkAsEmbedding();
-            await uploads.UpdateAsync(upload, ct);
-
-            // Filter out any empty chunks before embedding (PDF pages without text, etc.)
             var validChunks = chunkDrafts
                 .Where(c => !string.IsNullOrWhiteSpace(c.Content))
                 .ToList();
@@ -110,12 +110,15 @@ public class DocumentProcessingWorker : BackgroundService
                 throw new InvalidOperationException(
                     "No se encontró texto en el documento. Si es un PDF escaneado o contiene solo imágenes, necesita OCR para poder procesarlo.");
 
+            _logger.LogInformation("[DocWorker] [{Id}] Step 3/4 — Embedding {Count} valid chunks...", upload.Id, validChunks.Count);
+            upload.MarkAsEmbedding();
+            await uploads.UpdateAsync(upload, ct);
+
             var texts = validChunks.Select(c => c.Content).ToList();
             var embeddings = await embedding.EmbedBatchAsync(texts, ct);
+            _logger.LogInformation("[DocWorker] [{Id}] Embedding done", upload.Id);
 
             int totalTokens = validChunks.Sum(c => c.TokenCount);
-            int progress = 60;
-            int progressPerBatch = validChunks.Count > 0 ? 35 / Math.Max(1, validChunks.Count / 10) : 35;
 
             var documentChunks = validChunks.Select((draft, i) => DocumentChunk.Create(
                 documentId: upload.Id,
@@ -127,17 +130,16 @@ public class DocumentProcessingWorker : BackgroundService
                 headerPath: draft.HeaderPath)).ToList();
 
             // Step 4: Persist all chunks in batch
+            _logger.LogInformation("[DocWorker] [{Id}] Step 4/4 — Persisting {Count} chunks...", upload.Id, documentChunks.Count);
             await chunks.AddBatchAsync(documentChunks, ct);
 
-            progress = 95;
-            upload.UpdateProgress(progress);
+            upload.UpdateProgress(95);
             await uploads.UpdateAsync(upload, ct);
 
-            // Step 5: Mark complete
             upload.MarkAsCompleted(documentChunks.Count, totalTokens);
             await uploads.UpdateAsync(upload, ct);
 
-            _logger.LogInformation("[DocWorker] Document {Id} completed: {Chunks} chunks, {Tokens} tokens",
+            _logger.LogInformation("[DocWorker] [{Id}] Completed — {Chunks} chunks, {Tokens} tokens",
                 upload.Id, documentChunks.Count, totalTokens);
         }
         catch (Exception ex)
