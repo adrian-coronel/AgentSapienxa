@@ -1,6 +1,7 @@
 using AgentSapienxa.Application.Leads.Repositories;
 using AgentSapienxa.Domain.Leads;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace AgentSapienxa.Application.Leads.Commands.CaptureLead;
 
@@ -8,16 +9,20 @@ public class CaptureLeadHandler : IRequestHandler<CaptureLeadCommand, CaptureLea
 {
     private readonly ILeadRepository _leads;
     private readonly ISalesAgentRepository _agents;
+    private readonly ILogger<CaptureLeadHandler> _logger;
 
-    public CaptureLeadHandler(ILeadRepository leads, ISalesAgentRepository agents)
+    public CaptureLeadHandler(ILeadRepository leads, ISalesAgentRepository agents, ILogger<CaptureLeadHandler> logger)
     {
         _leads = leads;
         _agents = agents;
+        _logger = logger;
     }
 
     public async Task<CaptureLeadResult> Handle(CaptureLeadCommand cmd, CancellationToken ct)
     {
         var existing = await _leads.GetByPhoneNumberAsync(cmd.PhoneNumber, ct);
+        _logger.LogInformation("[CaptureLead] Phone={Phone} → existing={Found}", cmd.PhoneNumber, existing is not null);
+
         if (existing is not null)
         {
             existing.UpdateInfo(cmd.Name, cmd.Email);
