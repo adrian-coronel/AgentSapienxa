@@ -7,20 +7,16 @@ namespace AgentSapienxa.Infrastructure.Documents.Chunking;
 
 public class HybridSemanticChunker : ISemanticChunker
 {
-    private readonly IEmbeddingProvider _embedding;
     private readonly ILogger<HybridSemanticChunker> _logger;
     private const int MaxTokensPerChunk = 800;
     private const int TargetTokensPerChunk = 600;
-    private const float SimilarityThreshold = 0.6f;
-    private const float OverlapRatio = 0.15f;
 
-    public HybridSemanticChunker(IEmbeddingProvider embedding, ILogger<HybridSemanticChunker> logger)
+    public HybridSemanticChunker(ILogger<HybridSemanticChunker> logger)
     {
-        _embedding = embedding;
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<ChunkDraft>> ChunkAsync(string markdown, CancellationToken ct = default)
+    public Task<IReadOnlyList<ChunkDraft>> ChunkAsync(string markdown, CancellationToken ct = default)
     {
         var sections = SplitByHeaders(markdown);
         _logger.LogInformation("[Chunker] {Count} sections detected", sections.Count);
@@ -39,7 +35,6 @@ public class HybridSemanticChunker : ISemanticChunker
                 continue;
             }
 
-            // Large section: split by paragraphs with embedding-based boundary detection
             var paragraphs = content
                 .Split(["\n\n", "\r\n\r\n"], StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
@@ -48,22 +43,18 @@ public class HybridSemanticChunker : ISemanticChunker
 
             if (paragraphs.Count <= 1)
             {
-                // Single huge paragraph — hard split by sentences
                 _logger.LogInformation("[Chunker] Section {N} — single large paragraph, hard-splitting by sentences", si + 1);
-                var subChunks = HardSplitBySentences(content, headerPath, MaxTokensPerChunk);
-                result.AddRange(subChunks);
+                result.AddRange(HardSplitBySentences(content, headerPath, MaxTokensPerChunk));
                 continue;
             }
 
-            _logger.LogInformation("[Chunker] Section {N} — {Paragraphs} paragraphs, calling embedding API for semantic boundaries...",
-                si + 1, paragraphs.Count);
-            var subChunksFromParagraphs = await SplitParagraphsBySemanticBoundariesAsync(
-                paragraphs, headerPath, ct);
-            _logger.LogInformation("[Chunker] Section {N} — semantic split done, {Chunks} sub-chunks", si + 1, subChunksFromParagraphs.Count);
-            result.AddRange(subChunksFromParagraphs);
+            _logger.LogInformation("[Chunker] Section {N} — {Paragraphs} paragraphs, grouping by token size", si + 1, paragraphs.Count);
+            result.AddRange(GroupParagraphsByTokens(paragraphs, headerPath));
         }
 
-        return result.Where(c => !string.IsNullOrWhiteSpace(c.Content)).ToList();
+        IReadOnlyList<ChunkDraft> final = result.Where(c => !string.IsNullOrWhiteSpace(c.Content)).ToList();
+        _logger.LogInformation("[Chunker] Total chunks produced: {Count}", final.Count);
+        return Task.FromResult(final);
     }
 
     private static List<(string HeaderPath, string Content)> SplitByHeaders(string markdown)
@@ -86,7 +77,6 @@ public class HybridSemanticChunker : ISemanticChunker
             int level = match.Groups[1].Value.Length;
             string title = match.Groups[2].Value.Trim();
 
-            // Build header path
             while (headerStack.Count > 0 && headerStack.Peek().Level >= level)
                 headerStack.Pop();
             headerStack.Push((level, title));
@@ -101,7 +91,6 @@ public class HybridSemanticChunker : ISemanticChunker
                 sections.Add((headerPath, content));
         }
 
-        // Content before first header
         if (matches.Count > 0 && matches[0].Index > 0)
         {
             var preHeader = markdown[..matches[0].Index].Trim();
@@ -112,57 +101,30 @@ public class HybridSemanticChunker : ISemanticChunker
         return sections;
     }
 
-    private async Task<List<ChunkDraft>> SplitParagraphsBySemanticBoundariesAsync(
-        List<string> paragraphs,
-        string headerPath,
-        CancellationToken ct)
+    private static List<ChunkDraft> GroupParagraphsByTokens(List<string> paragraphs, string headerPath)
     {
-        // Embed each paragraph
-        var embeddings = await _embedding.EmbedBatchAsync(paragraphs, ct);
-
         var chunks = new List<ChunkDraft>();
-        var currentChunk = new StringBuilder();
+        var current = new StringBuilder();
         int currentTokens = 0;
-        float[]? prevEmbedding = null;
 
-        for (int i = 0; i < paragraphs.Count; i++)
+        foreach (var paragraph in paragraphs)
         {
-            var paragraph = paragraphs[i];
             int paraTokens = EstimateTokens(paragraph);
-            var curEmbedding = embeddings[i];
 
-            bool semanticBreak = prevEmbedding is not null &&
-                CosineSimilarity(prevEmbedding, curEmbedding) < SimilarityThreshold;
-
-            bool sizeBreak = currentTokens + paraTokens > TargetTokensPerChunk;
-
-            if ((semanticBreak || sizeBreak) && currentChunk.Length > 0)
+            if (currentTokens + paraTokens > TargetTokensPerChunk && current.Length > 0)
             {
-                chunks.Add(new ChunkDraft(currentChunk.ToString().Trim(), headerPath, currentTokens));
-
-                // Overlap: keep last N tokens worth of content
-                int overlapTokens = (int)(currentTokens * OverlapRatio);
-                var overlapText = GetLastNTokens(currentChunk.ToString(), overlapTokens);
-                currentChunk.Clear();
-                if (!string.IsNullOrWhiteSpace(overlapText))
-                {
-                    currentChunk.Append(overlapText);
-                    currentTokens = EstimateTokens(overlapText);
-                }
-                else
-                {
-                    currentTokens = 0;
-                }
+                chunks.Add(new ChunkDraft(current.ToString().Trim(), headerPath, currentTokens));
+                current.Clear();
+                currentTokens = 0;
             }
 
-            if (currentChunk.Length > 0) currentChunk.AppendLine();
-            currentChunk.Append(paragraph);
+            if (current.Length > 0) current.AppendLine();
+            current.Append(paragraph);
             currentTokens += paraTokens;
-            prevEmbedding = curEmbedding;
         }
 
-        if (currentChunk.Length > 0)
-            chunks.Add(new ChunkDraft(currentChunk.ToString().Trim(), headerPath, currentTokens));
+        if (current.Length > 0)
+            chunks.Add(new ChunkDraft(current.ToString().Trim(), headerPath, currentTokens));
 
         return chunks;
     }
@@ -195,23 +157,4 @@ public class HybridSemanticChunker : ISemanticChunker
     }
 
     private static int EstimateTokens(string text) => Math.Max(1, text.Length / 4);
-
-    private static string GetLastNTokens(string text, int approxTokens)
-    {
-        int chars = approxTokens * 4;
-        if (chars >= text.Length) return text;
-        return text[^chars..];
-    }
-
-    private static float CosineSimilarity(float[] a, float[] b)
-    {
-        float dot = 0, normA = 0, normB = 0;
-        for (int i = 0; i < a.Length && i < b.Length; i++)
-        {
-            dot += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
-        }
-        return (normA == 0 || normB == 0) ? 0f : dot / (float)(Math.Sqrt(normA) * Math.Sqrt(normB));
-    }
 }
