@@ -30,6 +30,8 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-AgentSapienxa}
       Jwt__Audience: ${JWT_AUDIENCE:-AgentSapienxa.Admin}
       Cors__AllowedOrigins__0: https://edusapienxa.dludena.digital
+    volumes:
+      - /data/uploads:/data/uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
