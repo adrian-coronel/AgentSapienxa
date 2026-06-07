@@ -33,7 +33,7 @@ services:
     volumes:
       - /data/uploads:/data/uploads
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "host.docker.internal:172.18.0.1"
     networks:
       - proxy-network
     labels:
